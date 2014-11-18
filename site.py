@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from flask import Flask,session,jsonify,redirect,render_template
-#from flup.server.fcgi import WSGIServer
+from flup.server.fcgi import WSGIServer
 from redis import StrictRedis as Redis
 from meta3t import game
 from random import choice as c
@@ -13,7 +13,7 @@ redis = Redis('localhost',6379,4)
 alphabet = "abcdefghijklmnopqrstuxwvyz01234566789"
 id = lambda: c(alphabet)+c(alphabet)+c(alphabet)+c(alphabet)
 
-@app.route("/")
+@app.route("/mox/")
 def init():
   if 'gid' not in session:
     gid = id()
@@ -32,15 +32,15 @@ def init():
     first = False
   return render_template('game.html',data=g.data,next=g.next,turn=g.turn,state=g.state,left=redis.ttl('game.%s'%gid),gid=gid,first=first,sym=session['sym'])
 
-@app.route("/join/<gid>/")
+@app.route("/mox/join/<gid>/")
 def join(gid):
     data = redis.get('game.%s'%gid)
     if not data: 
-      return redirect('/')
+      return redirect('/mox/')
       #return render_template('404.html'), 404
     g = game.load(data)
     if 'gid' in session and session['gid'] == gid:
-      return redirect('/')
+      return redirect('/mox/')
     session['gid'] = gid
     if g.state==0:
       g.state = 1
@@ -50,7 +50,7 @@ def join(gid):
       redis.set('game.%s'%gid,g.save(),60)
     return render_template('game.html',data=g.data,next=g.next,turn=g.turn,state=g.state,left=redis.ttl('game.%s'%gid),gid=gid,sym=session['sym'],second='true')
 
-@app.route("/status/")
+@app.route("/mox/status/")
 def status():
   gid  = session['gid']
   data = redis.get('game.%s'%gid)
@@ -59,12 +59,12 @@ def status():
     return jsonify(error=False,data=g.data,next=g.next,turn=g.turn,state=g.state,left=redis.ttl('game.%s'%gid),gid=gid,sym=session['sym'])
   return '{"error":true}'
   
-@app.route("/<int:b>/<int:m>/")
+@app.route("/mox/<int:b>/<int:m>/")
 def move(b,m): 
   gid = session['gid']
   data = redis.get('game.%s'%gid)
   if not data:
-    return redirect('/')
+    return redirect('/mox/')
     #return jsonify(status=404)
   g = game.load(data)
   gstate = g.play(m-1,b-1,session['sym'])
@@ -75,18 +75,7 @@ def move(b,m):
     redis.set('updated.%s.x'%gid,'true')
     return jsonify(data=g.data,status=200 if not gstate else 204)
     #return render_template('game.html',data=g.data,next=g.next,turn=g.turn,left=redis.ttl('game.%s'%gid),gid=gid,sym=session['sym'])
-  else: return redirect('/')
-
-def event_stream():
-  pubsub = redis.pubsub()
-  pubsub.subscribe('events')
-  for message in pubsub.listen():
-    print message
-    yield "event: %s\r\n"%message['data']
-
-@app.route('/stream')
-def stream():
-  return 3#Response(event_stream(), mimetype="text/event-stream")
+  else: return redirect('/mox/')
 
 @app.route('/poll')
 def poll():
@@ -100,6 +89,7 @@ def poll():
 
 def main():
   redis.flushdb()
-  app.run('0.0.0.0',80,debug=True)
+  WSGIServer(app).run()
+  #app.run('0.0.0.0',80,debug=True)
 
 if __name__ == '__main__': main()

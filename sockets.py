@@ -56,7 +56,7 @@ if __name__ == '__main__':
   factory = BroadcastServerFactory("ws://localhost:9000", debug = False)
   factory.protocol = MyServerProtocol
   loop = asyncio.get_event_loop()
-  coro = loop.create_server(factory, '127.0.0.1', 9000)
+  coro = loop.create_server(factory, '0.0.0.0', 9000)
   server = loop.run_until_complete(coro)
   try:
     loop.run_forever()
