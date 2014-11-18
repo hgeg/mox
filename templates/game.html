@@ -1,0 +1,394 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8"> 
+    <link href="/static/css/materialize.min.css" rel="stylesheet">
+    <link href="/static/css/styles.css" rel="stylesheet">
+    <script src="/static/js/zepto.min.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="/static/js/materialize.min.js"></script>
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script>
+      var turn = {{turn}};
+      var next = {{next}};
+      var count = {{left}};
+      var state = {{state}};
+      var gid = "{{gid}}";
+      var sym = "{{sym}}";
+      var counter = setInterval(timer, 1000);
+      //TODO: use polling as ws fallback
+      function poll() {
+        $.get('/poll',function(data){
+          if(data==1) window.location.href = window.location.href;
+          poll();
+        });
+      }
+      
+      var ws = new WebSocket("ws://localhost:9000");
+      //TODO: possible use for presence channels
+      ws.onopen = function() {
+        console.log('socket connection established');
+        if('{{second}}'=='true')
+          ws.send('update.'+gid);//+'.'+(sym=='x'?'o':'x'));
+      };
+      ws.onclose = function() {};
+      ws.onmessage = function (evt) 
+      { 
+         var msg = evt.data;
+         console.log('message: '+msg);
+         if(msg=='update.'+gid)//+'.'+sym) 
+           $.getJSON('/status',function(json) {
+             count = json.left;
+             turn  = json.turn;
+             next  = json.next;
+             data  = json.data
+             gid   = json.gid;
+             sym   = json.sym;
+            
+             if(state==0 && json.state==1) $('.overlay').css({'display':'none'});
+             if(json.state>1) window.location.href = window.location.href;
+             
+             $('.current img').attr('src',turn%2==0?'/static/img/x.png':'/static/img/o.png');
+
+             for(var i=0;i<9;i++) {
+               for(var j=0;j<9;j++) 
+                 if(data[i][j]!=' ')
+                   $('#c'+(i+1)+''+(j+1)).addClass(data[i][j]+'sym');
+               $('#c'+(i+1)).addClass(data[i][9]+'sym');
+             }
+             
+             if(next!=-1)
+               for(i = 1; i<10; i++) {
+                 if(next!=i-1) $('#c'+i).addClass('disabled'); 
+                 else        $('#c'+i).removeClass('disabled');
+               }
+             else $('.inner').removeClass('disabled');
+
+           });
+
+      };
+
+      function pad(a,b){return(1e15+a+"").slice(-b)}
+
+      function timer() {
+        count=count-1;
+        $('#board').html(pad(~~(count/60),2)+':'+pad(count%60,2));
+        if (count <= 0) {
+          $('#msg').html("Time's Up!")
+          jQuery('.overlay-link').html('Refresh to create a new session.')
+          clearInterval(counter);
+          return;
+        }
+      }
+
+      $(document).ready(function(){
+        $('.modal-trigger').leanModal();
+        if('{{first}}'=='True') {
+          $('.modal-trigger').click();
+        }
+      });
+
+      Zepto(function($) {
+        //poll();
+
+        timer();
+        $('.current img').attr('src',turn%2==0?'/static/img/x.png':'/static/img/o.png');
+        {% for b in range(9) -%}
+          {% for c in  range(9) -%}
+            {% if data[b][c]!=' ' %}
+              $('#c{{b+1}}{{c+1}}').addClass('{{data[b][c]}}sym');
+            {% endif %}
+          {%- endfor %}
+            {% if data[b][9]!=' ' %}
+              $('#c{{b+1}}').addClass('{{data[b][9]}}sym');
+            {% endif %}
+        {%- endfor %}
+        if(next!=-1)
+          for(i = 1; i<10; i++) {
+            if(next!=i-1) $('#c'+i).addClass('disabled'); 
+            else        $('#c'+i).removeClass('disabled');
+          }
+        else $('.inner').removeClass('disabled');
+        $(document).on('click','.inner td',function(e) {
+          if(turn%2==0 && "{{sym}}"=="o") return;
+          if(turn%2>0 && "{{sym}}"=="x") return;
+          b = parseInt($(this).attr('id').substr(1,1));
+          m = parseInt($(this).attr('id').substr(2,1));
+          $.getJSON('/'+b+'/'+m+'/',function(data){
+            if(data.status==200) {  
+              ws.send('update.'+gid);//+'.'+(sym=='x'?'o':'x'));
+              //window.location.href = window.location.href;
+            }
+          });
+        });
+      })
+    </script>
+  </head>
+  <body>
+      <div class="current flow-text">
+        Next: <br/>
+        <img src="/static/img/x.png" alt="current"/> </br>
+        Time Left: <br/>
+        <span id="board"></span> <br/>
+  <a class="waves-effect waves-light btn modal-trigger" href="#modal1" style="display:none;">Modal</a>
+         
+      </div>
+      <table class="main">
+        <tbody>
+          <tr>
+            <td id="c1" class="inner no-top no-left">
+
+              <table class="meta">
+                <tbody>
+                  <tr>
+                    <td id="c11" class="mini no-top no-left"> </td>
+                    <td id="c12" class="mini no-top"> </td>
+                    <td id="c13" class="mini no-top no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c14" class="mini no-left c5"> </td>
+                    <td id="c15" class="mini c6"> </td>
+                    <td id="c16" class="mini no-right c7"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c17" class="mini no-bottom no-left c8"> </td>
+                    <td id="c18" class="mini no-bottom c9"> </td>
+                    <td id="c19" class="mini no-bottom no-right c10"> </td>
+                  </tr>
+                </tbody>
+              </table>
+
+             </td>
+            <td id="c2" class="inner no-top">
+
+              <table class="meta">
+                <tbody>
+                  <tr>
+                    <td id="c21" class="mini no-top no-left"> </td>
+                    <td id="c22" class="mini no-top"> </td>
+                    <td id="c23" class="mini no-top no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c24" class="mini no-left"> </td>
+                    <td id="c25" class="mini"> </td>
+                    <td id="c26" class="mini no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c27" class="mini no-bottom no-left"> </td>
+                    <td id="c28" class="mini no-bottom"> </td>
+                    <td id="c29" class="mini no-bottom no-right"> </td>
+                  </tr>
+                </tbody>
+              </table>
+
+             </td>
+            <td id="c3" class="inner no-top no-right"> 
+
+              <table class="meta">
+                <tbody>
+                  <tr>
+                    <td id="c31" class="mini no-top no-left">
+
+                     </td>
+                    <td id="c32" class="mini no-top"> </td>
+                    <td id="c33" class="mini no-top no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c34" class="mini no-left"> </td>
+                    <td id="c35" class="mini"> </td>
+                    <td id="c36" class="mini no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c37" class="mini no-bottom no-left"> </td>
+                    <td id="c38" class="mini no-bottom"> </td>
+                    <td id="c39" class="mini no-bottom no-right"> </td>
+                  </tr>
+                </tbody>
+              </table>
+
+             </td>
+          </tr>
+          <tr>
+            <td id="c4" class="inner no-left">  
+
+              <table class="meta">
+                <tbody>
+                  <tr>
+                    <td id="c41" class="mini no-top no-left">
+
+                     </td>
+                    <td id="c42" class="mini no-top"> </td>
+                    <td id="c43" class="mini no-top no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c44" class="mini no-left"> </td>
+                    <td id="c45" class="mini"> </td>
+                    <td id="c46" class="mini no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c47" class="mini no-bottom no-left"> </td>
+                    <td id="c48" class="mini no-bottom"> </td>
+                    <td id="c49" class="mini no-bottom no-right"> </td>
+                  </tr>
+                </tbody>
+              </table>
+
+             </td>
+            <td id="c5" class="inner">  
+
+              <table class="meta">
+                <tbody>
+                  <tr>
+                    <td id="c51" class="mini no-top no-left"> </td>
+                    <td id="c52" class="mini no-top"> </td>
+                    <td id="c53" class="mini no-top no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c54" class="mini no-left"> </td>
+                    <td id="c55" class="mini"> </td>
+                    <td id="c56" class="mini no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c57" class="mini no-bottom no-left"> </td>
+                    <td id="c58" class="mini no-bottom"> </td>
+                    <td id="c59" class="mini no-bottom no-right"> </td>
+                  </tr>
+                </tbody>
+              </table>
+
+             </td>
+            <td id="c6" class="inner no-right">  
+
+              <table class="meta">
+                <tbody>
+                  <tr>
+                    <td id="c61" class="mini no-top no-left"> </td>
+                    <td id="c62" class="mini no-top"> </td>
+                    <td id="c63" class="mini no-top no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c64" class="mini no-left"> </td>
+                    <td id="c65" class="mini"> </td>
+                    <td id="c66" class="mini no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c67" class="mini no-bottom no-left"> </td>
+                    <td id="c68" class="mini no-bottom"> </td>
+                    <td id="c69" class="mini no-bottom no-right"> </td>
+                  </tr>
+                </tbody>
+              </table>
+
+             </td>
+          </tr>
+          <tr>
+            <td id="c7" class="inner no-bottom no-left">  
+
+              <table class="meta">
+                <tbody>
+                  <tr>
+                    <td id="c71" class="mini no-top no-left"> </td>
+                    <td id="c72" class="mini no-top"> </td>
+                    <td id="c73" class="mini no-top no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c74" class="mini no-left"> </td>
+                    <td id="c75" class="mini"> </td>
+                    <td id="c76" class="mini no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c77" class="mini no-bottom no-left"> </td>
+                    <td id="c78" class="mini no-bottom"> </td>
+                    <td id="c79" class="mini no-bottom no-right"> </td>
+                  </tr>
+                </tbody>
+              </table>
+
+             </td>
+            <td id="c8" class="inner no-bottom">  
+
+              <table class="meta">
+                <tbody>
+                  <tr>
+                    <td id="c81" class="mini no-top no-left"> </td>
+                    <td id="c82" class="mini no-top"> </td>
+                    <td id="c83" class="mini no-top no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c84" class="mini no-left"> </td>
+                    <td id="c85" class="mini"> </td>
+                    <td id="c86" class="mini no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c87" class="mini no-bottom no-left"> </td>
+                    <td id="c88" class="mini no-bottom"> </td>
+                    <td id="c89" class="mini no-bottom no-right"> </td>
+                  </tr>
+                </tbody>
+              </table>
+
+             </td>
+            <td id="c9" class="inner no-bottom no-right">  
+
+              <table class="meta">
+                <tbody>
+                  <tr>
+                    <td id="c91" class="mini no-top no-left"> </td>
+                    <td id="c92" class="mini no-top"> </td>
+                    <td id="c93" class="mini no-top no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c94" class="mini no-left"> </td>
+                    <td id="c95" class="mini"> </td>
+                    <td id="c96" class="mini no-right"> </td>
+                  </tr>
+                  <tr>
+                    <td id="c97" class="mini no-bottom no-left"> </td>
+                    <td id="c98" class="mini no-bottom"> </td>
+                    <td id="c99" class="mini no-bottom no-right"> </td>
+                  </tr>
+                </tbody>
+              </table>
+
+             </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {% if state==0 %}
+      <div class="overlay">
+          <span id="msg">
+            Waiting for a player...
+            <center class="overlay-link">localhost/join/{{gid}}/</center>
+          </span>
+        </div>
+      {% endif %}
+      
+      {% if (state==3 and sym=='x') or (state==2 and sym=='o')%}
+      <div class="overlay overlay-lose">
+          <span id="msg-lose">
+            You lose :(
+          </span>
+      </div>
+      {% endif %}
+
+      {% if (state==3 and sym=='o') or (state==2 and sym=='x')%}
+      <div class="overlay overlay-win">
+          <span id="msg-win">
+            You win :)
+          </span>
+      </div>
+      {% endif %}
+
+  <!-- Modal Structure -->
+  <div id="modal1" class="modal">
+    <h4>Enjoy!</h4>
+    <p> 
+      Your session has been created. You have {{left//60}} {% if left//60==1 %}minute{% else %}minutes{% endif %} to invite someone by sharing the following link: <br/>
+      <center class="megalink">localhost/join/{{gid}}/</center>
+    </p>
+    <center> <a href="#" class="waves-effect button flat modal_close">OK</a> </center>
+  </div>
+
+  </body>
+</html>
