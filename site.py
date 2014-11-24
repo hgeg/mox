@@ -34,19 +34,17 @@ def init():
 
 @app.route("/mox/join/<gid>/")
 def join(gid):
+    if 'gid' in session and session['gid'] == gid:
+      return redirect('/mox/')
     data = redis.get('game.%s'%gid)
     if not data: 
       return redirect('/mox/')
       #return render_template('404.html'), 404
     g = game.load(data)
-    if 'gid' in session and session['gid'] == gid:
-      return redirect('/mox/')
     session['gid'] = gid
     if g.state==0:
       g.state = 1
-
       session['sym'] = 'o'
-      redis.set('updated.%s.x'%gid,'true')
       redis.set('game.%s'%gid,g.save(),60)
     return render_template('game.html',data=g.data,next=g.next,turn=g.turn,state=g.state,left=redis.ttl('game.%s'%gid),gid=gid,sym=session['sym'],second='true')
 

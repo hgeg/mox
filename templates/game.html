@@ -50,6 +50,8 @@
                $('#close1').click();
              }
              if(json.state>1) window.location.href = window.location.href;
+
+             state = json.state
              
              $('.current img').attr('src',turn%2==0?'/static/img/x.png':'/static/img/o.png');
 
@@ -78,8 +80,11 @@
         $('#board').html(pad(~~(count/60),2)+':'+pad(count%60,2));
         if (count <= 0) {
           $('#msg').html("Time's Up!")
-          $('#close1').click();
           jQuery('.overlay-link').html('Refresh to create a new session.')
+          $('#close1').click();
+          if(state==1) {
+               $('.overlay').css({'display':'table'});
+          }
           clearInterval(counter);
           return;
         }
