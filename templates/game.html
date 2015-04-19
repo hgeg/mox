@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8"> 
     <title>MOX</title>
-    <link href="/static/css/materialize.min.css" rel="stylesheet">
-    <link href="/static/css/styles.css" rel="stylesheet">
-    <script src="/static/js/zepto.min.js"></script>
+    <link href="/mox/static/css/materialize.min.css" rel="stylesheet">
+    <link href="/mox/static/css/styles.css" rel="stylesheet">
+    <link href="/mox/static/favicon.ico?v=2" rel="shortcut icon">
+    <script src="/mox/static/js/zepto.min.js"></script>
     <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
-    <script src="/static/js/materialize.min.js"></script>
+    <script src="/mox/static/js/materialize.min.js"></script>
     <script>
       var turn = {{turn}};
       var next = {{next}};
@@ -18,13 +19,13 @@
       var counter = setInterval(timer, 1000);
       //TODO: use polling as ws fallback
       function poll() {
-        $.get('/static/poll',function(data){
+        $.get('/mox/static/poll',function(data){
           if(data==1) window.location.href = window.location.href;
           poll();
         });
       }
       
-      var ws = new WebSocket("ws://pqcns.us:9000");
+      var ws = new WebSocket("wss://csgn.us:9000");
       //TODO: possible use for invite system
       ws.onopen = function() {
         console.log('socket connection established');
@@ -53,7 +54,7 @@
 
              state = json.state
              
-             $('.current img').attr('src',turn%2==0?'/static/img/x.png':'/static/img/o.png');
+             $('.current img').attr('src',turn%2==0?'/mox/static/img/x.png':'/mox/static/img/o.png');
 
              for(var i=0;i<9;i++) {
                for(var j=0;j<9;j++) 
@@ -101,7 +102,7 @@
         //poll();
 
         timer();
-        $('.current img').attr('src',turn%2==0?'/static/img/x.png':'/static/img/o.png');
+        $('.current img').attr('src',turn%2==0?'/mox/static/img/x.png':'/mox/static/img/o.png');
         {% for b in range(9) -%}
           {% for c in  range(9) -%}
             {% if data[b][c]!=' ' %}
@@ -136,7 +137,7 @@
   <body>
       <div class="current flow-text">
         Next: <br/>
-        <img src="/static/img/x.png" alt="current"/> </br>
+        <img src="/mox/static/img/x.png" alt="current"/> </br>
         Time Left: <br/>
         <span id="board"></span> <br/>
   <a class="waves-effect waves-light btn modal-trigger" href="#modal1" style="display:none;">Modal</a>
@@ -377,6 +378,7 @@
       <div class="overlay overlay-lose">
           <span id="msg-lose">
             You lose :(
+            <center> <a id="close1" href="/mox/refresh/" class="waves-effect button flat modal_close">Refresh</a> </center>
           </span>
       </div>
       {% endif %}
@@ -385,6 +387,7 @@
       <div class="overlay overlay-win">
           <span id="msg-win">
             You win :)
+            <center> <a id="close1" href="/mox/refresh/" class="waves-effect button flat modal_close">Refresh</a> </center>
           </span>
       </div>
       {% endif %}

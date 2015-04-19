@@ -164,6 +164,10 @@ span.link {
   text-shadow: 2px 2px 0 rgba(50,50,50,0.5);
 }
 
+#close1 {
+  font-size: 16px;
+}
+
 .overlay center.overlay-link {
   margin-left: 25%;
   margin-top: 20px;

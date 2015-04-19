@@ -5,10 +5,13 @@ from redis import StrictRedis as Redis
 from meta3t import game
 from random import choice as c
 from time import sleep
+import sys
 
 app = Flask(__name__)
 app.secret_key = "JU(P-IG9*G/()dbhj_2knHU(+?Rhuwj/90"
 redis = Redis('localhost',6379,4)
+upstat = lambda k: redis.incr('mox.stats.%s'%k) 
+downstat = lambda k: redis.decr('mox.stats.%s'%k) 
 
 alphabet = "abcdefghijklmnopqrstuxwvyz01234566789"
 id = lambda: c(alphabet)+c(alphabet)+c(alphabet)+c(alphabet)
@@ -18,10 +21,11 @@ def init():
   if 'gid' not in session:
     gid = id()
     g = game()
-    redis.set('game.%s'%gid,g.save(),300)
+    redis.setex('game.%s'%gid,300,g.save())
     session['gid'] = gid
     session['sym'] = 'x'
     first = True
+    upstat('game_init')
   else:
     gid = session['gid']
     data = redis.get('game.%s'%gid)
@@ -45,9 +49,21 @@ def join(gid):
     if g.state==0:
       g.state = 1
       session['sym'] = 'o'
-      redis.set('game.%s'%gid,g.save(),60)
+      upstat('game_join')
+      redis.setex('game.%s'%gid,60,g.save())
     return render_template('game.html',data=g.data,next=g.next,turn=g.turn,state=g.state,left=redis.ttl('game.%s'%gid),gid=gid,sym=session['sym'],second='true')
 
+@app.route("/mox/refresh/")
+def refresh():
+  gid = id()
+  g = game()
+  redis.setex('game.%s'%gid,300,g.save())
+  session['gid'] = gid
+  session['sym'] = 'x'
+  first = True
+  upstat('game_init')
+  return render_template('game.html',data=g.data,next=g.next,turn=g.turn,state=g.state,left=redis.ttl('game.%s'%gid),gid=gid,first=first,sym=session['sym'])
+  
 @app.route("/mox/status/")
 def status():
   gid  = session['gid']
@@ -67,7 +83,8 @@ def move(b,m):
   g = game.load(data)
   gstate = g.play(m-1,b-1,session['sym'])
   if gstate==0:
-    redis.set('game.%s'%gid,g.save(),60)
+    upstat('game_event')
+    redis.setex('game.%s'%gid,60,g.save())
     #redis.publish('events','game.%s'%gid)
     redis.set('updated.%s.o'%gid,'true')
     redis.set('updated.%s.x'%gid,'true')
@@ -87,7 +104,7 @@ def poll():
 
 def main():
   redis.flushdb()
+  #app.run('0.0.0.0',6612,debug=True)
   WSGIServer(app).run()
-  #app.run('0.0.0.0',80,debug=True)
 
 if __name__ == '__main__': main()
