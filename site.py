@@ -8,7 +8,7 @@ from time import sleep
 import sys
 
 app = Flask(__name__)
-app.secret_key = "JU(P-IG9*G/()dbhj_2knHU(+?Rhuwj/90"
+app.secret_key = "..."
 redis = Redis('localhost',6379,4)
 upstat = lambda k: redis.incr('mox.stats.%s'%k) 
 downstat = lambda k: redis.decr('mox.stats.%s'%k) 
