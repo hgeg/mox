@@ -21,26 +21,28 @@ def init():
   if 'gid' not in session:
     gid = id()
     g = game()
-    redis.setex('game.%s'%gid,300,g.save())
+    redis.setex('session.%s'%gid,300,g.save())
     session['gid'] = gid
     session['sym'] = 'x'
     first = True
+    left = redis.ttl('session.%s'%gid)
     upstat('game_init')
   else:
     gid = session['gid']
     data = redis.get('game.%s'%gid)
+    left = redis.ttl('game.%s'%gid)
     if not data: 
       session.pop('gid')
       return init()
     g = game.load(data)
     first = False
-  return render_template('game.html',data=g.data,next=g.next,turn=g.turn,state=g.state,left=redis.ttl('game.%s'%gid),gid=gid,first=first,sym=session['sym'])
+  return render_template('game.html',data=g.data,next=g.next,turn=g.turn,state=g.state,left=left,gid=gid,first=first,sym=session['sym'])
 
 @app.route("/mox/join/<gid>/")
 def join(gid):
     if 'gid' in session and session['gid'] == gid:
       return redirect('/mox/')
-    data = redis.get('game.%s'%gid)
+    data = redis.get('session.%s'%gid)
     if not data: 
       return redirect('/mox/')
       #return render_template('404.html'), 404
@@ -50,6 +52,7 @@ def join(gid):
       g.state = 1
       session['sym'] = 'o'
       upstat('game_join')
+      redis.delete('session.%s'%gid)
       redis.setex('game.%s'%gid,60,g.save())
     return render_template('game.html',data=g.data,next=g.next,turn=g.turn,state=g.state,left=redis.ttl('game.%s'%gid),gid=gid,sym=session['sym'],second='true')
 
@@ -57,12 +60,12 @@ def join(gid):
 def refresh():
   gid = id()
   g = game()
-  redis.setex('game.%s'%gid,300,g.save())
+  redis.setex('session.%s'%gid,300,g.save())
   session['gid'] = gid
   session['sym'] = 'x'
   first = True
   upstat('game_init')
-  return render_template('game.html',data=g.data,next=g.next,turn=g.turn,state=g.state,left=redis.ttl('game.%s'%gid),gid=gid,first=first,sym=session['sym'])
+  return render_template('game.html',data=g.data,next=g.next,turn=g.turn,state=g.state,left=redis.ttl('session.%s'%gid),gid=gid,first=first,sym=session['sym'])
   
 @app.route("/mox/status/")
 def status():
@@ -78,7 +81,7 @@ def move(b,m):
   gid = session['gid']
   data = redis.get('game.%s'%gid)
   if not data:
-    return redirect('/mox/')
+    return jsonify(error=-500, status=500)
     #return jsonify(status=404)
   g = game.load(data)
   gstate = g.play(m-1,b-1,session['sym'])
@@ -90,7 +93,8 @@ def move(b,m):
     redis.set('updated.%s.x'%gid,'true')
     return jsonify(data=g.data,status=200 if not gstate else 204)
     #return render_template('game.html',data=g.data,next=g.next,turn=g.turn,left=redis.ttl('game.%s'%gid),gid=gid,sym=session['sym'])
-  else: return redirect('/mox/')
+  else: 
+    return jsonify(error=gstate, status=500)
 
 @app.route('/poll')
 def poll():
@@ -103,7 +107,7 @@ def poll():
   return "0"
 
 def main():
-  redis.flushdb()
+  #redis.flushdb()
   #app.run('0.0.0.0',6612,debug=True)
   WSGIServer(app).run()
 

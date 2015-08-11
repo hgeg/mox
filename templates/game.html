@@ -6,133 +6,6 @@
     <link href="/mox/static/css/materialize.min.css" rel="stylesheet">
     <link href="/mox/static/css/styles.css" rel="stylesheet">
     <link href="/mox/static/favicon.ico?v=2" rel="shortcut icon">
-    <script src="/mox/static/js/zepto.min.js"></script>
-    <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
-    <script src="/mox/static/js/materialize.min.js"></script>
-    <script>
-      var turn = {{turn}};
-      var next = {{next}};
-      var count = {{left}};
-      var state = {{state}};
-      var gid = "{{gid}}";
-      var sym = "{{sym}}";
-      var counter = setInterval(timer, 1000);
-      //TODO: use polling as ws fallback
-      function poll() {
-        $.get('/mox/static/poll',function(data){
-          if(data==1) window.location.href = window.location.href;
-          poll();
-        });
-      }
-      
-      var ws = new WebSocket("wss://csgn.us:9000");
-      //TODO: possible use for invite system
-      ws.onopen = function() {
-        console.log('socket connection established');
-        if('{{second}}'=='true')
-          ws.send('update.'+gid);//+'.'+(sym=='x'?'o':'x'));
-      };
-      ws.onclose = function() {};
-      ws.onmessage = function (evt) 
-      { 
-         var msg = evt.data;
-         console.log('message: '+msg);
-         if(msg=='update.'+gid)//+'.'+sym) 
-           $.getJSON('/mox/status/',function(json) {
-             count = json.left;
-             turn  = json.turn;
-             next  = json.next;
-             data  = json.data
-             gid   = json.gid;
-             sym   = json.sym;
-            
-             if(state==0 && json.state==1) {
-               $('.overlay').css({'display':'none'});
-               $('#close1').click();
-             }
-             if(json.state>1) window.location.href = window.location.href;
-
-             state = json.state
-             
-             $('.current img').attr('src',turn%2==0?'/mox/static/img/x.png':'/mox/static/img/o.png');
-
-             for(var i=0;i<9;i++) {
-               for(var j=0;j<9;j++) 
-                 if(data[i][j]!=' ')
-                   $('#c'+(i+1)+''+(j+1)).addClass(data[i][j]+'sym');
-               $('#c'+(i+1)).addClass(data[i][9]+'sym');
-             }
-             
-             if(next!=-1)
-               for(i = 1; i<10; i++) {
-                 if(next!=i-1) $('#c'+i).addClass('disabled'); 
-                 else        $('#c'+i).removeClass('disabled');
-               }
-             else $('.inner').removeClass('disabled');
-
-           });
-
-      };
-
-      function pad(a,b){return(1e15+a+"").slice(-b)}
-
-      function timer() {
-        count=count-1;
-        $('#board').html(pad(~~(count/60),2)+':'+pad(count%60,2));
-        if (count <= 0) {
-          $('#msg').html("Time's Up!")
-          jQuery('.overlay-link').html('Refresh to create a new session.')
-          $('#close1').click();
-          if(state==1) {
-               $('.overlay').css({'display':'table'});
-          }
-          clearInterval(counter);
-          return;
-        }
-      }
-
-      $(document).ready(function(){
-        $('.modal-trigger').leanModal();
-        if('{{first}}'=='True') {
-          $('.modal-trigger').click();
-        }
-      });
-
-      Zepto(function($) {
-        //poll();
-
-        timer();
-        $('.current img').attr('src',turn%2==0?'/mox/static/img/x.png':'/mox/static/img/o.png');
-        {% for b in range(9) -%}
-          {% for c in  range(9) -%}
-            {% if data[b][c]!=' ' %}
-              $('#c{{b+1}}{{c+1}}').addClass('{{data[b][c]}}sym');
-            {% endif %}
-          {%- endfor %}
-            {% if data[b][9]!=' ' %}
-              $('#c{{b+1}}').addClass('{{data[b][9]}}sym');
-            {% endif %}
-        {%- endfor %}
-        if(next!=-1)
-          for(i = 1; i<10; i++) {
-            if(next!=i-1) $('#c'+i).addClass('disabled'); 
-            else        $('#c'+i).removeClass('disabled');
-          }
-        else $('.inner').removeClass('disabled');
-        $(document).on('click','.inner td',function(e) {
-          if(turn%2==0 && "{{sym}}"=="o") return;
-          if(turn%2>0 && "{{sym}}"=="x") return;
-          b = parseInt($(this).attr('id').substr(1,1));
-          m = parseInt($(this).attr('id').substr(2,1));
-          $.getJSON('/mox/'+b+'/'+m+'/',function(data){
-            if(data.status==200) {  
-              ws.send('update.'+gid);//+'.'+(sym=='x'?'o':'x'));
-              //window.location.href = window.location.href;
-            }
-          });
-        });
-      })
-    </script>
   </head>
   <body>
       <div class="current flow-text">
@@ -402,5 +275,132 @@
     <center> <a id="close1" href="#" class="waves-effect button flat modal_close">OK</a> </center>
   </div>
 
+  <script src="/mox/static/js/zepto.min.js"></script>
+  <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="/mox/static/js/materialize.min.js"></script>
+  <script>
+    var turn = {{turn}};
+    var next = {{next}};
+    var count = {{left}};
+    var state = {{state}};
+    var gid = "{{gid}}";
+    var sym = "{{sym}}";
+    var counter = setInterval(timer, 1000);
+    //TODO: use polling as ws fallback
+    function poll() {
+      $.get('/mox/static/poll',function(data){
+        if(data==1) window.location.href = window.location.href;
+        poll();
+      });
+    }
+    
+    var ws = new WebSocket("wss://csgn.us:9000");
+    //TODO: possible use for invite system
+    ws.onopen = function() {
+      console.log('socket connection established');
+      if('{{second}}'=='true')
+        ws.send('update.'+gid);//+'.'+(sym=='x'?'o':'x'));
+    };
+    ws.onclose = function() {};
+    ws.onmessage = function (evt) 
+    { 
+       var msg = evt.data;
+       console.log('message: '+msg);
+       if(msg=='update.'+gid)//+'.'+sym) 
+         $.getJSON('/mox/status/',function(json) {
+           count = json.left;
+           turn  = json.turn;
+           next  = json.next;
+           data  = json.data
+           gid   = json.gid;
+           sym   = json.sym;
+          
+           if(state==0 && json.state==1) {
+             $('.overlay').css({'display':'none'});
+             $('#close1').click();
+           }
+           if(json.state>1) window.location.href = window.location.href;
+
+           state = json.state
+           
+           $('.current img').attr('src',turn%2==0?'/mox/static/img/x.png':'/mox/static/img/o.png');
+
+           for(var i=0;i<9;i++) {
+             for(var j=0;j<9;j++) 
+               if(data[i][j]!=' ')
+                 $('#c'+(i+1)+''+(j+1)).addClass(data[i][j]+'sym');
+             $('#c'+(i+1)).addClass(data[i][9]+'sym');
+           }
+           
+           if(next!=-1)
+             for(i = 1; i<10; i++) {
+               if(next!=i-1) $('#c'+i).addClass('disabled'); 
+               else        $('#c'+i).removeClass('disabled');
+             }
+           else $('.inner').removeClass('disabled');
+
+         });
+
+    };
+
+    function pad(a,b){return(1e15+a+"").slice(-b)}
+
+    function timer() {
+      count=count-1;
+      $('#board').html(pad(~~(count/60),2)+':'+pad(count%60,2));
+      if (count <= 0) {
+        $('#msg').html("Time's Up!")
+        jQuery('.overlay-link').html('Refresh to create a new session.')
+        $('#close1').click();
+        if(state==1) {
+             $('.overlay').css({'display':'table'});
+        }
+        clearInterval(counter);
+        return;
+      }
+    }
+
+    $(document).ready(function(){
+      $('.modal-trigger').leanModal();
+      if('{{first}}'=='True') {
+        $('.modal-trigger').click();
+      }
+    });
+
+    Zepto(function($) {
+      //poll();
+
+      timer();
+      $('.current img').attr('src',turn%2==0?'/mox/static/img/x.png':'/mox/static/img/o.png');
+      {% for b in range(9) -%}
+        {% for c in  range(9) -%}
+          {% if data[b][c]!=' ' %}
+            $('#c{{b+1}}{{c+1}}').addClass('{{data[b][c]}}sym');
+          {% endif %}
+        {%- endfor %}
+          {% if data[b][9]!=' ' %}
+            $('#c{{b+1}}').addClass('{{data[b][9]}}sym');
+          {% endif %}
+      {%- endfor %}
+      if(next!=-1)
+        for(i = 1; i<10; i++) {
+          if(next!=i-1) $('#c'+i).addClass('disabled'); 
+          else        $('#c'+i).removeClass('disabled');
+        }
+      else $('.inner').removeClass('disabled');
+      $(document).on('click','.inner td',function(e) {
+        if(turn%2==0 && "{{sym}}"=="o") return;
+        if(turn%2>0 && "{{sym}}"=="x") return;
+        b = parseInt($(this).attr('id').substr(1,1));
+        m = parseInt($(this).attr('id').substr(2,1));
+        $.getJSON('/mox/'+b+'/'+m+'/',function(data){
+          if(data.status==200) {  
+            ws.send('update.'+gid);//+'.'+(sym=='x'?'o':'x'));
+            //window.location.href = window.location.href;
+          }
+        });
+      });
+    })
+  </script>
   </body>
 </html>
