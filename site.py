@@ -8,10 +8,11 @@ from time import sleep
 import sys
 
 app = Flask(__name__)
-app.secret_key = "..."
+app.secret_key = "923323281823338281823832831832"
 redis = Redis('localhost',6379,4)
 upstat = lambda k: redis.incr('mox.stats.%s'%k) 
 downstat = lambda k: redis.decr('mox.stats.%s'%k) 
+getstat = lambda k: redis.get('mox.stats.%s'%k)
 
 alphabet = "abcdefghijklmnopqrstuxwvyz01234566789"
 id = lambda: c(alphabet)+c(alphabet)+c(alphabet)+c(alphabet)
@@ -96,7 +97,7 @@ def move(b,m):
   else: 
     return jsonify(error=gstate, status=500)
 
-@app.route('/poll')
+@app.route('/mox/poll')
 def poll():
   for e in xrange(100):
     p = redis.get('updated.%s.%s'%(session['gid'],session['sym']))
@@ -105,6 +106,15 @@ def poll():
       return "1"
     sleep(0.1)
   return "0"
+
+@app.route('/mox/stats')
+def stats():
+    stats = {
+        '# of hits': getstat('game_init'),
+        '# of games': getstat('game_join'),
+        '# of moves': getstat('game_event')
+            }
+    return jsonify(**stats)
 
 def main():
   #redis.flushdb()

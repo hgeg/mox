@@ -20,7 +20,7 @@ class Broadcast(WebSocket):
 
     
 if __name__ == '__main__':
-  server = SimpleSSLWebSocketServer("192.168.1.63", 9000, Broadcast, "/etc/ssl/server.crt", "/etc/ssl/server.key", version=ssl.PROTOCOL_TLSv1)
+  server = SimpleSSLWebSocketServer("192.168.1.63", 9000, Broadcast, "/etc/letsencrypt/live/csgn.us/cert.pem", "/etc/letsencrypt/live/csgn.us/privkey.pem", version=ssl.PROTOCOL_TLSv1)
 
   def close_sig_handler(signal, frame):
     server.close()
