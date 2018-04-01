@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8"> 
     <title>MOX</title>
-    <link href="/mox/static/css/materialize.min.css" rel="stylesheet">
     <link href="/mox/static/css/styles.css" rel="stylesheet">
-    <link href="/mox/static/favicon.ico?v=2" rel="shortcut icon">
+    <link href="/mox/static/css/materialize.min.css" rel="stylesheet">
+    <link href="/mox/static/favicon.ico" rel="shortcut icon">
   </head>
   <body>
       <div class="current flow-text">
@@ -300,8 +300,22 @@
       console.log('socket connection established');
       if('{{second}}'=='true')
         ws.send('update.'+gid);//+'.'+(sym=='x'?'o':'x'));
+      $(document).ready(function(){
+        $('.modal-trigger').leanModal();
+        if('{{first}}'=='True') {
+          $('.modal-trigger').click();
+        }
+      });
+
     };
+    
+    ws.onerror = function() {
+      m = '<div class="overlay overlay-error"><span id="msg-lose">connection error!<center> <a id="close1" href="/mox/refresh/" class="waves-effect button flat modal_close">Refresh</a> </center></span></div>'
+      $("body").html(m);
+    };
+
     ws.onclose = function() {};
+
     ws.onmessage = function (evt) 
     { 
        var msg = evt.data;
@@ -359,13 +373,6 @@
         return;
       }
     }
-
-    $(document).ready(function(){
-      $('.modal-trigger').leanModal();
-      if('{{first}}'=='True') {
-        $('.modal-trigger').click();
-      }
-    });
 
     Zepto(function($) {
       //poll();

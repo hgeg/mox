@@ -158,6 +158,19 @@ span.link {
   font-size: 32px;
 }
 
+.overlay-error {
+  display: table;
+  text-align: center;
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  color: #ddd;
+  background-color: #222;
+  font-size: 32px;
+}
+
 .overlay span {
   display: table-cell;
   vertical-align: middle;

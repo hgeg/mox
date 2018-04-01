@@ -1,4 +1,4 @@
-site.py
+mox.py
 6612
-screen -dmS moxws sudo python sockets.py
-pgrep -f sockets.py | xargs kill
+screen -dmS moxws sudo python ~/mox/sockets.py
+pgrep -f sockets.py | sudo xargs kill
