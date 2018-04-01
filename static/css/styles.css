@@ -33,7 +33,7 @@ table.meta {
 
 .disabled {
   cursor: not-allowed;
-  background-color: #eee; 
+  background-color: #dedede; 
 }
 
 td.xsym {
